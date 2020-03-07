@@ -9,10 +9,11 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import Data.HashMap.Strict
+import qualified Data.HashMap.Strict as HM
 import Data.Aeson.Types
 import Data.Aeson
 import Data.Scientific
-import Data.Maybe (fromJust)
+import Data.Maybe (fromMaybe)
 import Types
 
 readZettel :: PandocMonad m => FilePath -> m Pandoc
@@ -20,17 +21,6 @@ readZettel f = do
   content <- E.decodeUtf8 <$> readFileLazy f
   let extension = enableExtension Ext_yaml_metadata_block emptyExtensions
   readMarkdown (def {readerExtensions = extension }) (TL.toStrict content)
-
--- Right (
---  Pandoc (
---    Meta {
---      unMeta =
---        fromList
---          [("author",MetaList [MetaInlines [Str "Armando"]]),
---           ("tags",MetaList [MetaInlines [Str "test"]]),
---           ("title",MetaInlines [Str "Test",Space,Str "Zettel"])]
---         }) 
---         [Header 2 ("",[],[]) [Str "How",Space,Str "to",Space,Str "write",Space,Str "a",Space,Str "Zettel"]])
 
 createZettel :: PandocMonad m => Pandoc -> m Zettel
 createZettel p@(Pandoc m _) = do
@@ -43,7 +33,7 @@ createZettel p@(Pandoc m _) = do
         Nothing -> return []
         (Just (MetaBlocks r)) -> do
           str <- writePlain def (Pandoc nullMeta r)
-          return $ toConnections (fromJust . decode $ E.encodeUtf8 (TL.fromStrict str))
+          return $ toConnections (fromMaybe (Array V.empty) . decode $ E.encodeUtf8 (TL.fromStrict str))
   return (Zettel {
     getId = ZID 0,
     getTimestamp = "07/03/2020",
@@ -59,8 +49,8 @@ toConnections (Array l) = V.toList $ V.map toConnection l
 
 toConnection :: Value -> Connection
 toConnection (Object m) =
-  let i = fromJust . toBoundedInteger . fromNumber $ m ! "id"
-      reason = fromString $ m ! "reason"
+  let i = fromMaybe (-1) . toBoundedInteger . fromNumber . fromMaybe (Number 0) $ "id" `HM.lookup` m
+      reason = fromString . fromMaybe "" $ "reason" `HM.lookup` m
    in Connection {
     getCID = ZID i,
     getDesc = reason
