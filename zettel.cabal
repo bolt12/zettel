@@ -1,60 +1,153 @@
-cabal-version:       2.4
-name:                zettel
-version:             0.0.0.0
-synopsis:            Zettelkasten file processor
-description:         Zettelkasten file processor
-homepage:            https://github.com/bolt12/zettel
-bug-reports:         https://github.com/bolt12/zettel/issues
-license:             MIT
-license-file:        LICENSE
-author:              Armando Santos
-maintainer:          Armando Santos <armandoifsantos@gmail.com>
-copyright:           2020 Armando Santos
-category:            Application
-build-type:          Simple
-extra-doc-files:     README.md
-                     CHANGELOG.md
-tested-with:         GHC == 8.6.5
-                     GHC == 8.8.2
+cabal-version: 2.4
+name: zettel
+version: 0.0.0.0
+license: MIT
+license-file: LICENSE
+copyright: 2020 Armando Santos
+maintainer: Armando Santos <armandoifsantos@gmail.com>
+author: Armando Santos
+tested-with: ghc ==8.6.5 ghc ==8.8.2
+homepage: https://github.com/bolt12/zettel
+bug-reports: https://github.com/bolt12/zettel/issues
+synopsis: Zettelkasten file processor
+description:
+    Zettelkasten file processor
+category: Application
+build-type: Simple
+extra-doc-files: README.md
+                 CHANGELOG.md
 
 source-repository head
-  type:                git
-  location:            https://github.com/bolt12/zettel.git
-
-common common-options
-  build-depends:       base >= 4.12.0.0 && < 4.14,
-                       pandoc,
-                       polysemy,
-                       hasbolt,
-                       text
-  
-  ghc-options:         -Wall
-                       -Wcompat
-                       -Widentities
-                       -Wincomplete-uni-patterns
-                       -Wincomplete-record-updates
-  if impl(ghc >= 8.0)
-    ghc-options:       -Wredundant-constraints
-  if impl(ghc >= 8.2)
-    ghc-options:       -fhide-source-paths
-  if impl(ghc >= 8.4)
-    ghc-options:       -Wmissing-export-lists
-                       -Wpartial-fields
-  if impl(ghc >= 8.8)
-    ghc-options:       -Wmissing-deriving-strategies
-
-  default-language:    Haskell2010
+    type: git
+    location: https://github.com/bolt12/zettel.git
 
 library
-  import:              common-options
-  hs-source-dirs:      src
-  exposed-modules:     Lib
+    exposed-modules:
+        Lib
+        Neo4JEffect
+        Types
+    hs-source-dirs: src
+    default-language: Haskell2010
+    ghc-options: -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+                 -Wincomplete-record-updates
+    build-depends:
+        base >=4.12.0.0 && <4.14,
+        pandoc -any,
+        polysemy -any,
+        hasbolt -any,
+        text -any,
+        data-default -any,
+        containers -any,
+        time -any
+    
+    if impl(ghc >=8.0)
+        ghc-options: -Wredundant-constraints
+        build-depends:
+            data-default -any,
+            time -any,
+            pandoc-types -any,
+            aeson -any,
+            containers -any,
+            unordered-containers -any,
+            vector -any
+    
+    if impl(ghc >=8.2)
+        ghc-options: -fhide-source-paths
+        build-depends:
+            data-default -any,
+            time -any,
+            pandoc-types -any,
+            aeson -any,
+            containers -any,
+            unordered-containers -any,
+            vector -any
+    
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists -Wpartial-fields
+        build-depends:
+            data-default -any,
+            time -any,
+            pandoc-types -any,
+            aeson -any,
+            containers -any,
+            unordered-containers -any,
+            vector -any
+    
+    if impl(ghc >=8.8)
+        ghc-options: -Wmissing-deriving-strategies
+        build-depends:
+            data-default -any,
+            time -any,
+            pandoc-types -any,
+            aeson -any,
+            containers -any,
+            unordered-containers -any,
+            vector -any
 
 executable zettel
-  import:              common-options
-  hs-source-dirs:      app
-  main-is:             Main.hs
-  
-  ghc-options:         -threaded
-                       -rtsopts
-                       -with-rtsopts=-N
+    main-is: Main.hs
+    hs-source-dirs: app
+    default-language: Haskell2010
+    ghc-options: -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
+                 -Wincomplete-record-updates
+    build-depends:
+        base >=4.12.0.0 && <4.14,
+        pandoc -any,
+        polysemy -any,
+        text -any,
+        hasbolt -any,
+        zettel -any,
+        pandoc-types -any,
+        aeson -any,
+        unordered-containers -any,
+        vector -any,
+        bytestring,
+        scientific
+    
+    if impl(ghc >=8.0)
+        ghc-options: -Wredundant-constraints
+        build-depends:
+            data-default -any,
+            time -any,
+            pandoc-types -any,
+            aeson -any,
+            unordered-containers -any,
+            vector -any,
+            bytestring,
+            scientific
+    
+    if impl(ghc >=8.2)
+        ghc-options: -fhide-source-paths
+        build-depends:
+            data-default -any,
+            time -any,
+            pandoc-types -any,
+            aeson -any,
+            unordered-containers -any,
+            vector -any,
+            bytestring,
+            scientific
+    
+    if impl(ghc >=8.4)
+        ghc-options: -Wmissing-export-lists -Wpartial-fields
+        build-depends:
+            data-default -any,
+            time -any,
+            pandoc-types -any,
+            aeson -any,
+            unordered-containers -any,
+            vector -any,
+            bytestring,
+            scientific
+    
+    if impl(ghc >=8.8)
+        ghc-options: -Wmissing-deriving-strategies
+        build-depends:
+            data-default -any,
+            time -any,
+            pandoc-types -any,
+            aeson -any,
+            unordered-containers -any,
+            vector -any,
+            bytestring,
+            scientific
