@@ -3,7 +3,10 @@ title: "First Zettel"
 author: Armando
 tags: first, dev
 connections: |
-  [ {"id": 2, "reason": "Equal"}, {"id": 2, "reason": "Identity property"} ]
+  [
+    {"id": 2, "reason": "Equal"},
+    {"id": 2, "reason": "Identity property"}
+  ]
 ...
 
 # Example Zettel
