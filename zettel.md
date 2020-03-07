@@ -1,26 +1,13 @@
 ---
-title: 'Test Zettel'
-author: Armando, Cláudia
-tags: test, first
+title: "First Zettel"
+author: Armando
+tags: first, dev
 connections: |
-  [
-    {
-      "id": 12,
-      "reason":
-        "It still does not exist. \n
-         eheh"
-    },
-    {
-      "id": 14,
-      "reason": "It __still__ does not **exist**"
-    }
-  ]
+  [ {"id": 2, "reason": "Equal"}, {"id": 2, "reason": "Identity property"} ]
 ...
 
-## How to write a Zettel
+# Example Zettel
 
-This is how you write a __zettel__.
+Currently developing a zettel processor that reads markdown zettels with markdown
+metadata and inserts them in a Graph DB.
 
-This is how you **do not** write a ~~note~~ zettel.
-
-[github.com/bolt12](my account)

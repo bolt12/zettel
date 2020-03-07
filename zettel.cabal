@@ -25,6 +25,7 @@ library
     exposed-modules:
         Lib
         Neo4JEffect
+        PandocParse
         Types
     hs-source-dirs: src
     default-language: Haskell2010
@@ -38,7 +39,10 @@ library
         text -any,
         data-default -any,
         containers -any,
-        time -any
+        unordered-containers -any,
+        scientific -any,
+        vector -any,
+        aeson -any
     
     if impl(ghc >=8.0)
         ghc-options: -Wredundant-constraints
@@ -49,7 +53,10 @@ library
             aeson -any,
             containers -any,
             unordered-containers -any,
-            vector -any
+            vector -any,
+            polysemy -any,
+            hasbolt -any,
+            pandoc -any
     
     if impl(ghc >=8.2)
         ghc-options: -fhide-source-paths
@@ -60,7 +67,10 @@ library
             aeson -any,
             containers -any,
             unordered-containers -any,
-            vector -any
+            vector -any,
+            polysemy -any,
+            hasbolt -any,
+            pandoc -any
     
     if impl(ghc >=8.4)
         ghc-options: -Wmissing-export-lists -Wpartial-fields
@@ -71,7 +81,10 @@ library
             aeson -any,
             containers -any,
             unordered-containers -any,
-            vector -any
+            vector -any,
+            polysemy -any,
+            hasbolt -any,
+            pandoc -any
     
     if impl(ghc >=8.8)
         ghc-options: -Wmissing-deriving-strategies
@@ -82,7 +95,10 @@ library
             aeson -any,
             containers -any,
             unordered-containers -any,
-            vector -any
+            vector -any,
+            polysemy -any,
+            hasbolt -any,
+            pandoc -any
 
 executable zettel
     main-is: Main.hs
@@ -92,62 +108,39 @@ executable zettel
                  -Wincomplete-record-updates
     build-depends:
         base >=4.12.0.0 && <4.14,
-        pandoc -any,
-        polysemy -any,
-        text -any,
-        hasbolt -any,
         zettel -any,
-        pandoc-types -any,
-        aeson -any,
-        unordered-containers -any,
-        vector -any,
-        bytestring,
-        scientific
+        polysemy -any,
+        hasbolt -any,
+        pandoc -any
     
     if impl(ghc >=8.0)
         ghc-options: -Wredundant-constraints
         build-depends:
-            data-default -any,
-            time -any,
-            pandoc-types -any,
-            aeson -any,
-            unordered-containers -any,
-            vector -any,
-            bytestring,
-            scientific
+            zettel -any,
+            polysemy -any,
+            hasbolt -any,
+            pandoc -any
     
     if impl(ghc >=8.2)
         ghc-options: -fhide-source-paths
         build-depends:
-            data-default -any,
-            time -any,
-            pandoc-types -any,
-            aeson -any,
-            unordered-containers -any,
-            vector -any,
-            bytestring,
-            scientific
+            zettel -any,
+            polysemy -any,
+            hasbolt -any,
+            pandoc -any
     
     if impl(ghc >=8.4)
         ghc-options: -Wmissing-export-lists -Wpartial-fields
         build-depends:
-            data-default -any,
-            time -any,
-            pandoc-types -any,
-            aeson -any,
-            unordered-containers -any,
-            vector -any,
-            bytestring,
-            scientific
+            zettel -any,
+            polysemy -any,
+            hasbolt -any,
+            pandoc -any
     
     if impl(ghc >=8.8)
         ghc-options: -Wmissing-deriving-strategies
         build-depends:
-            data-default -any,
-            time -any,
-            pandoc-types -any,
-            aeson -any,
-            unordered-containers -any,
-            vector -any,
-            bytestring,
-            scientific
+            zettel -any,
+            polysemy -any,
+            hasbolt -any,
+            pandoc -any

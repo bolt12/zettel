@@ -16,7 +16,7 @@ data Zettel = Zettel {
                 getAuthors :: [Text],
                 getZettel :: Text,
                 getTags :: [Text],
-                getConections :: [Connection]
+                getConnections :: [Connection]
               } deriving (Show, Eq)
 
 data Connection = Connection {

@@ -1,74 +1,38 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Main (main) where
 
+import Polysemy
+import Polysemy.Reader
+import Polysemy.Error
+import qualified Database.Bolt as DB
+import Neo4JEffect
+import PandocParse
 import Text.Pandoc
-import qualified Data.Text.Lazy.Encoding as E
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text as T
-import qualified Data.Vector as V
-import Data.HashMap.Strict
-import qualified Data.HashMap.Strict as HM
-import Data.Aeson.Types
-import Data.Aeson
-import Data.Scientific
-import Data.Maybe (fromMaybe)
-import Types
+import Data.Either (fromRight)
 
-readZettel :: PandocMonad m => FilePath -> m Pandoc
-readZettel f = do
-  content <- E.decodeUtf8 <$> readFileLazy f
-  let extension = enableExtension Ext_yaml_metadata_block emptyExtensions
-  readMarkdown (def {readerExtensions = extension }) (TL.toStrict content)
+prog :: Members '[Error PandocError, Neo4J, Embed IO] r => Sem r ()
+prog = do
+  p <- embed . runIO $ readZettel "zettel.md"
+  case p of
+    Left e -> throw e
+    Right pandoc -> do
+      zettel <- embed . runIO $ createZettel pandoc
+      case zettel of
+        Left e -> throw e
+        Right z -> createNode z
 
-createZettel :: PandocMonad m => Pandoc -> m Zettel
-createZettel p@(Pandoc m _) = do
-  title <- writePlain def (Pandoc nullMeta [Plain (docTitle m)])
-  author <- writePlain def (Pandoc nullMeta [Plain (concat $ docAuthors m)])
-  tags <- writePlain def (Pandoc nullMeta [Plain (concat $ docTags m)])
-  zettel <- writePlain def p
-  let res = lookupMeta "connections" m
-  connections <- case res of
-        Nothing -> return []
-        (Just (MetaBlocks r)) -> do
-          str <- writePlain def (Pandoc nullMeta r)
-          return $ toConnections (fromMaybe (Array V.empty) . decode $ E.encodeUtf8 (TL.fromStrict str))
-  return (Zettel {
-    getId = ZID 0,
-    getTimestamp = "07/03/2020",
-    getTitle = title,
-    getAuthors = T.splitOn "," author,
-    getZettel = zettel,
-    getTags = T.splitOn "," tags,
-    getConections = connections
-                 })
-
-toConnections :: Value -> [Connection]
-toConnections (Array l) = V.toList $ V.map toConnection l
-
-toConnection :: Value -> Connection
-toConnection (Object m) =
-  let i = fromMaybe (-1) . toBoundedInteger . fromNumber . fromMaybe (Number 0) $ "id" `HM.lookup` m
-      reason = fromString . fromMaybe "" $ "reason" `HM.lookup` m
-   in Connection {
-    getCID = ZID i,
-    getDesc = reason
-                 }
-  where
-    fromNumber (Number n) = n
-    fromString (String s) = s
-
-docTags :: Meta -> [[Inline]]
-docTags meta =
-  case lookupMeta "tags" meta of
-        Just (MetaString s)    -> [[Str s]]
-        Just (MetaInlines ils) -> [ils]
-        Just (MetaList   ms)   -> [ils | MetaInlines ils <- ms] ++
-                                  [ils | MetaBlocks [Plain ils] <- ms] ++
-                                  [ils | MetaBlocks [Para ils]  <- ms] ++
-                                  [[Str x] | MetaString x <- ms]
-        _                      -> []
+runProg :: DB.Pipe -> IO (Either PandocError ())
+runProg pipe =
+  runM
+  . runReader pipe
+  . runError
+  . neo4jToIO
+  $ prog
 
 main :: IO ()
-main = putStrLn ("Hello, world!" :: String)
+main = do
+  pipe <- DB.connect (def { DB.user = "neo4j", DB.password = "bolt"})
+  fromRight () <$> runProg pipe

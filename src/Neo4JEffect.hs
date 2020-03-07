@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
@@ -30,7 +31,7 @@ data Neo4J m a where
 
 makeSem ''Neo4J
 
-neo4jToIO :: Members '[Neo4J ,Reader B.Pipe, Embed IO] r => Sem (Neo4J ': r) a -> Sem r a
+neo4jToIO :: Members '[Reader B.Pipe, Embed IO] r => Sem (Neo4J ': r) a -> Sem r a
 neo4jToIO = interpret $ \case
   Connect user password -> B.connect (def {B.user = user, B.password = password})
   CreateNode zettel -> do
@@ -46,28 +47,35 @@ neo4jToIO = interpret $ \case
               ("tg", B.T . pack . show . getTags $ zettel)
             ]
         )
-    if Prelude.null (getConections zettel)
+    if Prelude.null (getConnections zettel)
        then return ()
-       else
-        mapM_ (\c -> createRelation (getId zettel) (getCID c) (getDesc c))
-              (getConections zettel)
+       else do
+        r <- B.run pipe $
+          B.queryP
+            "MATCH (z:Zettel) WHERE z.timestamp = {ts} return z"
+            ( fromList
+                [ ("ts", B.T $ getTimestamp zettel ) ]
+            )
+        let newZettelId = getId . toZettel . (! "z") . Prelude.head $ r
+        mapM_ (\c -> neo4jToIO $ createRelation newZettelId (getCID c) (getDesc c))
+              (getConnections zettel)
   CreateRelation (ZID id1) (ZID id2) t -> do
     pipe <- ask
     B.run pipe $
       B.queryP_
-        ( "MATCH (z1:Zettel) WHERE ID(z1)  WHERE ID(z1)={id1}\n" `append`
-          "MATCH (z2:Zettel) WHERE ID(z2)  WHERE ID(z2)={id2}\n" `append`
+        ( "MATCH (z1:Zettel) WHERE ID(z1)={id1}\n" `append`
+          "MATCH (z2:Zettel) WHERE ID(z2)={id2}\n" `append`
           "CREATE (z1)-[:RELATES { reason: {desc} }]->(z2)"
         )
         ( fromList
-            [ ("id1", B.T . pack $ show id1),
-              ("id2", B.T . pack $ show id2),
+            [ ("id1", B.I id1),
+              ("id2", B.I id2),
               ("desc", B.T t)
             ]
         )
   GetNode (ZID i) -> do
     pipe <- ask
-    r <- B.run pipe $ 
+    r <- B.run pipe $
       B.queryP
         "MATCH (z:Zettel) WHERE ID(z)={id}"
         (fromList [ ("id", B.T . pack $ show i) ])
@@ -89,7 +97,7 @@ toZettel (B.S l) =
                      getTimestamp = timestamp,
                      getTitle = title,
                      getZettel = zettel,
-                     getConections = []
+                     getConnections = []
                    })
     aux (_:t) z = aux t z
 toZettel _ = Zettel {}
