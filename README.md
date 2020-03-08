@@ -7,4 +7,71 @@
 [![Stackage Nightly](http://stackage.org/package/zettel/badge/nightly)](http://stackage.org/nightly/package/zettel)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Zettelkasten file processor
+`zettel` is a Zettelkasten file processor.
+
+## Requirements
+
+### Dependencies
+
+- GHC
+- Cabal / Stack
+- Neo4J version 3.X (Version 4 is not supported)
+
+### Other
+
+`zettel` requires you to have specified a default text editor. To do so please provide one
+by exporting VISUAL or EDITOR environment variables:
+
+> export EDITOR=vim
+
+By default it will use `vi`.
+
+## Quick Start
+
+```shell
+> zettel -h
+>
+Zettelkasten processor
+
+Usage: zettel (new | list)
+
+Available options:
+-h,--help                Show this help text
+
+Available commands:
+new
+list
+```
+
+The `new` command will open your default editor so you can write your zettelkasten. On
+save the file will be parsed and insert it on the DB.
+
+The `list` command requires a `--size=` flag and lists all your zettels.
+
+Your Zettels will be stored in `~/.zettel/`.
+
+## Meta Data
+
+Zettel Metadata follows the YAML syntax as you can see in the `ExampleZettel.md`.
+
+Supported fields:
+
+- `title`: specifies the zettel title
+- `authors`: specifies the zettel authors
+- `tags`: specifies the zettel tags
+- `connections`: specifies the connections to other zettels in the following format
+  example:
+  ```YAML
+  [
+    {
+      "id": 2,
+      "reason": "text"
+    }
+  ]
+  ```
+
+## Beta
+
+Please note that this is still a beta version. Please report any issue via Github Issue.
+
+PRs are welcome!
