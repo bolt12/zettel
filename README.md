@@ -17,6 +17,18 @@
 - Cabal / Stack
 - Neo4J version 3.X (Version 4 is not supported)
 
+### Config file
+
+`zettel` will attempt to read from `HOME/.zettel/zettel-conf` a file which has the
+credentials for the Neo4J DB, in the following format:
+
+```
+<user> <pass>
+```
+
+If none the directory nor the file exists, `zettel` will create one with default
+credentials `neo4j neo4j`.
+
 ### Other
 
 `zettel` requires you to have specified a default text editor. To do so please provide one

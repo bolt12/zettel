@@ -13,7 +13,7 @@ module Main
 where
 
 import qualified Data.ByteString as B
-import Data.ByteString
+import Data.ByteString hiding (pack, map)
 import qualified Data.Time as T
 import Data.Time.Format
 import qualified Database.Bolt as DB
@@ -24,10 +24,11 @@ import Polysemy
 import Polysemy.Error
 import Polysemy.Reader
 import Polysemy.Trace
-import Text.Editor
-import Text.Pandoc hiding (trace)
-import System.Environment
 import System.Directory
+import System.Environment
+import Text.Editor
+import Data.Text (pack)
+import Text.Pandoc hiding (trace)
 
 data Options w
   = New
@@ -69,7 +70,6 @@ mainProg = do
       r <- embed $ runUserEditorDWIM markdownTemplate template
       timestamp <- embed T.getCurrentTime
       home <- embed $ getEnv "HOME"
-      embed $ createDirectory (home ++ "/.zettel")
       let formated = formatTime defaultTimeLocale "%d-%m-%YT%H:%M:%S" timestamp
           filename = formated ++ ".md"
           zettelsFile = home ++ "/.zettel/" ++ filename
@@ -94,7 +94,19 @@ runMain pipe =
 
 main :: IO ()
 main = do
-  pipe <- DB.connect (def {DB.user = "neo4j", DB.password = "bolt"})
+  home <- getEnv "HOME"
+  b <- doesFileExist (home ++ "/.zettel/zettel-conf")
+  [user, pass] <-
+    map pack <$>
+    if b
+      then words <$> Prelude.readFile (home ++ "/.zettel/zettel-conf")
+      else do
+        createDirectoryIfMissing False (home ++ "/.zettel")
+        Prelude.writeFile
+          (home ++ "/.zettel/zettel-conf")
+          "neo4j neo4j"
+        return ["neo4j", "neo4j"]
+  pipe <- DB.connect (def {DB.user = user, DB.password = pass})
   r <- runMain pipe
   case r of
     Left e -> error (show e)
