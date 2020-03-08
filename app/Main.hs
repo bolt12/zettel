@@ -72,7 +72,7 @@ mainProg = do
       home <- embed $ getEnv "HOME"
       let formated = formatTime defaultTimeLocale "%d-%m-%YT%H:%M:%S" timestamp
           filename = formated ++ ".md"
-          zettelsFile = home ++ "/.zettel/" ++ filename
+          zettelsFile = home ++ "/.config/zettel/" ++ filename
       embed $ B.writeFile zettelsFile r
       p <- embed . runIO $ readZettel zettelsFile
       case p of
@@ -95,15 +95,15 @@ runMain pipe =
 main :: IO ()
 main = do
   home <- getEnv "HOME"
-  b <- doesFileExist (home ++ "/.zettel/zettel-conf")
+  b <- doesFileExist (home ++ "/.config/zettel/zettel-conf")
   [user, pass] <-
     map pack <$>
     if b
-      then words <$> Prelude.readFile (home ++ "/.zettel/zettel-conf")
+      then words <$> Prelude.readFile (home ++ "/.config/zettel/zettel-conf")
       else do
-        createDirectoryIfMissing False (home ++ "/.zettel")
+        createDirectoryIfMissing False (home ++ "/.config/zettel")
         Prelude.writeFile
-          (home ++ "/.zettel/zettel-conf")
+          (home ++ "/.config/zettel/zettel-conf")
           "neo4j neo4j"
         return ["neo4j", "neo4j"]
   pipe <- DB.connect (def {DB.user = user, DB.password = pass})

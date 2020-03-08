@@ -19,7 +19,7 @@
 
 ### Config file
 
-`zettel` will attempt to read from `HOME/.zettel/zettel-conf` a file which has the
+`zettel` will attempt to read from `HOME/.config/zettel/zettel-conf` a file which has the
 credentials for the Neo4J DB, in the following format:
 
 ```
@@ -60,7 +60,7 @@ save the file will be parsed and insert it on the DB.
 
 The `list` command requires a `--size=` flag and lists all your zettels.
 
-Your Zettels will be stored in `~/.zettel/`.
+Your Zettels will be stored in `HOME/.config/zettel/`.
 
 ## Meta Data
 
