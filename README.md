@@ -7,7 +7,7 @@
 [![Stackage Nightly](http://stackage.org/package/zettel/badge/nightly)](http://stackage.org/nightly/package/zettel)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-`zettel` is a Zettelkasten file processor.
+`zettel` is a [Zettelkasten](https://writingcooperative.com/zettelkasten-how-one-german-scholar-was-so-freakishly-productive-997e4e0ca125) file processor.
 
 ## Requirements
 
