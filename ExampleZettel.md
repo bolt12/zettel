@@ -1,26 +1,21 @@
 ---
-title: 'Test Zettel'
-author: Armando, Cláudia
-tags: test, first
+title: "Title"
+author: A, B
+tags: t1, t2
 connections: |
   [
     {
       "id": 12,
       "reason":
-        "It still does not exist. \n
-         eheh"
+        "Bla Bla"
     },
     {
       "id": 14,
-      "reason": "It __still__ does not **exist**"
+      "reason": "Ble Ble"
     }
   ]
 ...
 
-## How to write a Zettel
+## Content
 
-This is how you write a __zettel__.
-
-This is how you **do not** write a ~~note~~ zettel.
-
-[github.com/bolt12](my account)
+Content

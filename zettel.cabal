@@ -23,7 +23,6 @@ source-repository head
 
 library
     exposed-modules:
-        Lib
         Neo4JEffect
         PandocParse
         Types
@@ -56,7 +55,8 @@ library
             vector -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any
+            pandoc -any,
+            time -any
     
     if impl(ghc >=8.2)
         ghc-options: -fhide-source-paths
@@ -70,7 +70,8 @@ library
             vector -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any
+            pandoc -any,
+            time -any
     
     if impl(ghc >=8.4)
         ghc-options: -Wmissing-export-lists -Wpartial-fields
@@ -84,7 +85,8 @@ library
             vector -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any
+            pandoc -any,
+            time -any
     
     if impl(ghc >=8.8)
         ghc-options: -Wmissing-deriving-strategies
@@ -98,7 +100,8 @@ library
             vector -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any
+            pandoc -any,
+            time -any
 
 executable zettel
     main-is: Main.hs
@@ -111,7 +114,12 @@ executable zettel
         zettel -any,
         polysemy -any,
         hasbolt -any,
-        pandoc -any
+        pandoc -any,
+        optparse-generic -any,
+        editor-open -any,
+        bytestring -any,
+        time -any,
+        directory -any
     
     if impl(ghc >=8.0)
         ghc-options: -Wredundant-constraints
@@ -119,7 +127,8 @@ executable zettel
             zettel -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any
+            pandoc -any,
+            time -any
     
     if impl(ghc >=8.2)
         ghc-options: -fhide-source-paths
@@ -127,7 +136,8 @@ executable zettel
             zettel -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any
+            pandoc -any,
+            time -any
     
     if impl(ghc >=8.4)
         ghc-options: -Wmissing-export-lists -Wpartial-fields
@@ -135,7 +145,8 @@ executable zettel
             zettel -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any
+            pandoc -any,
+            time -any
     
     if impl(ghc >=8.8)
         ghc-options: -Wmissing-deriving-strategies
@@ -143,4 +154,5 @@ executable zettel
             zettel -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any
+            pandoc -any,
+            time -any
