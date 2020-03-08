@@ -46,62 +46,58 @@ library
     if impl(ghc >=8.0)
         ghc-options: -Wredundant-constraints
         build-depends:
-            data-default -any,
-            time -any,
-            pandoc-types -any,
-            aeson -any,
-            containers -any,
-            unordered-containers -any,
-            vector -any,
+            pandoc -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any,
-            time -any
+            text -any,
+            data-default -any,
+            containers -any,
+            unordered-containers -any,
+            scientific -any,
+            vector -any,
+            aeson -any
     
     if impl(ghc >=8.2)
         ghc-options: -fhide-source-paths
         build-depends:
-            data-default -any,
-            time -any,
-            pandoc-types -any,
-            aeson -any,
-            containers -any,
-            unordered-containers -any,
-            vector -any,
+            pandoc -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any,
-            time -any
+            text -any,
+            data-default -any,
+            containers -any,
+            unordered-containers -any,
+            scientific -any,
+            vector -any,
+            aeson -any
     
     if impl(ghc >=8.4)
         ghc-options: -Wmissing-export-lists -Wpartial-fields
         build-depends:
-            data-default -any,
-            time -any,
-            pandoc-types -any,
-            aeson -any,
-            containers -any,
-            unordered-containers -any,
-            vector -any,
+            pandoc -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any,
-            time -any
+            text -any,
+            data-default -any,
+            containers -any,
+            unordered-containers -any,
+            scientific -any,
+            vector -any,
+            aeson -any
     
     if impl(ghc >=8.8)
         ghc-options: -Wmissing-deriving-strategies
         build-depends:
-            data-default -any,
-            time -any,
-            pandoc-types -any,
-            aeson -any,
-            containers -any,
-            unordered-containers -any,
-            vector -any,
+            pandoc -any,
             polysemy -any,
             hasbolt -any,
-            pandoc -any,
-            time -any
+            text -any,
+            data-default -any,
+            containers -any,
+            unordered-containers -any,
+            scientific -any,
+            vector -any,
+            aeson -any
 
 executable zettel
     main-is: Main.hs
@@ -129,7 +125,12 @@ executable zettel
             polysemy -any,
             hasbolt -any,
             pandoc -any,
-            time -any
+            optparse-generic -any,
+            editor-open -any,
+            bytestring -any,
+            time -any,
+            directory -any,
+            text -any
     
     if impl(ghc >=8.2)
         ghc-options: -fhide-source-paths
@@ -138,7 +139,12 @@ executable zettel
             polysemy -any,
             hasbolt -any,
             pandoc -any,
-            time -any
+            optparse-generic -any,
+            editor-open -any,
+            bytestring -any,
+            time -any,
+            directory -any,
+            text -any
     
     if impl(ghc >=8.4)
         ghc-options: -Wmissing-export-lists -Wpartial-fields
@@ -147,7 +153,12 @@ executable zettel
             polysemy -any,
             hasbolt -any,
             pandoc -any,
-            time -any
+            optparse-generic -any,
+            editor-open -any,
+            bytestring -any,
+            time -any,
+            directory -any,
+            text -any
     
     if impl(ghc >=8.8)
         ghc-options: -Wmissing-deriving-strategies
@@ -156,4 +167,9 @@ executable zettel
             polysemy -any,
             hasbolt -any,
             pandoc -any,
-            time -any
+            optparse-generic -any,
+            editor-open -any,
+            bytestring -any,
+            time -any,
+            directory -any,
+            text -any
