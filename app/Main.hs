@@ -13,7 +13,7 @@ module Main
 where
 
 import qualified Data.ByteString as B
-import Data.ByteString hiding (pack, map)
+import Data.ByteString hiding (unpack, pack, map)
 import qualified Data.Time as T
 import Data.Time.Format
 import qualified Database.Bolt as DB
@@ -27,8 +27,10 @@ import Polysemy.Trace
 import System.Directory
 import System.Environment
 import Text.Editor
+import qualified Data.Text.Lazy as TL (unpack)
 import Data.Text (pack)
 import Text.Pandoc hiding (trace)
+import Text.Pretty.Simple (pShow)
 
 data Options w
   = New
@@ -65,7 +67,7 @@ mainProg = do
   case x of
     List s -> do
       r <- listNodes s
-      trace (show r)
+      trace . TL.unpack . pShow $ r
     New -> do
       r <- embed $ runUserEditorDWIM markdownTemplate template
       timestamp <- embed T.getCurrentTime
