@@ -27,6 +27,7 @@ data Neo4J m a where
   CreateRelation :: ZettelID -> ZettelID -> Text -> Neo4J m ()
   GetNode :: ZettelID -> Neo4J m Zettel
   ListNodes :: Int -> Neo4J m [Zettel]
+  FindNodes :: [String] -> Neo4J m [Zettel]
 
 makeSem ''Neo4J
 
@@ -89,6 +90,15 @@ neo4jToIO = interpret $ \case
           "MATCH (z:Zettel) RETURN z LIMIT {size}"
           (fromList [("size", B.I s)])
     return . Prelude.map (toZettel . (! "z")) $ r
+  FindNodes tags -> do
+    pipe <- ask
+    r <-
+      B.run pipe $
+        B.queryP
+          "MATCH (z:Zettel) WHERE size([tag IN {tags} WHERE tag IN z.tags | 1]) > 0 RETURN z"
+          (fromList [("tags", B.L . Prelude.map (B.T . pack) $ tags)])
+    return . Prelude.map (toZettel . (! "z")) $ r
+
 
 toZettel :: B.Value -> Zettel
 toZettel (B.S l) =

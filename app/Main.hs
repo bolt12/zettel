@@ -37,6 +37,9 @@ data Options w
   | List
       { size :: w ::: Int <?> "List size"
       }
+  | Find
+      { tags :: w ::: [String] <?> "Tags to search for"
+      }
   deriving (Generic)
 
 instance ParseRecord (Options Wrapped)
@@ -84,6 +87,9 @@ mainProg = do
           case zettel of
             Left e -> throw e
             Right z -> createNode z
+    Find tags -> do
+      r <- findNodes tags
+      trace . TL.unpack . pShow $ r
 
 runMain :: DB.Pipe -> IO (Either PandocError ())
 runMain pipe =

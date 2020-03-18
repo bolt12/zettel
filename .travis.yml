@@ -37,9 +37,9 @@ install:
 script:
   - |
     if [ -z "$STACK_YAML" ]; then
-      cabal test --enable-tests
+      travis_wait 30 cabal test --enable-tests
     else
-      stack test --system-ghc
+      travis_wait 30 stack test --system-ghc
     fi
 
 notifications:
