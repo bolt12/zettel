@@ -18,11 +18,12 @@ import qualified Data.Time as T
 import Data.Time.Format
 import qualified Database.Bolt as DB
 import Neo4JEffect
+import Types
 import Options.Generic
 import PandocParse
 import Polysemy
 import Polysemy.Error
-import Polysemy.Reader
+import Polysemy.Input
 import Polysemy.Trace
 import System.Directory
 import System.Environment
@@ -40,10 +41,12 @@ data Options w
   | Find
       { tags :: w ::: [String] <?> "Tags to search for"
       }
+  | Remove
+      { id :: w ::: Int <?> "Zettel id to delete"
+      }
   deriving (Generic)
 
 instance ParseRecord (Options Wrapped)
-
 deriving instance Show (Options Unwrapped)
 
 template :: ByteString
@@ -87,15 +90,16 @@ mainProg = do
           case zettel of
             Left e -> throw e
             Right z -> createNode z
-    Find tags -> do
-      r <- findNodes tags
+    Find t -> do
+      r <- findNodes t
       trace . TL.unpack . pShow $ r
+    Remove zid -> delete (ZID zid)
 
 runMain :: DB.Pipe -> IO (Either PandocError ())
 runMain pipe =
   runM
     . traceToIO
-    . runReader pipe
+    . runInputConst pipe
     . runError @PandocError
     . neo4jToIO
     $ mainProg

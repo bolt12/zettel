@@ -15,7 +15,7 @@ import Data.Map
 import Data.Text
 import qualified Database.Bolt as B
 import Polysemy
-import Polysemy.Reader
+import Polysemy.Input
 import Types
 
 type User = Text
@@ -28,13 +28,14 @@ data Neo4J m a where
   GetNode :: ZettelID -> Neo4J m Zettel
   ListNodes :: Int -> Neo4J m [Zettel]
   FindNodes :: [String] -> Neo4J m [Zettel]
+  Delete :: ZettelID -> Neo4J m ()
 
 makeSem ''Neo4J
 
-neo4jToIO :: Members '[Reader B.Pipe, Embed IO] r => Sem (Neo4J ': r) a -> Sem r a
+neo4jToIO :: Members '[Input B.Pipe, Embed IO] r => Sem (Neo4J ': r) a -> Sem r a
 neo4jToIO = interpret $ \case
   CreateNode zettel -> do
-    pipe <- ask
+    pipe <- input
     B.run pipe $
       B.queryP_
         "CREATE (node:Zettel { timestamp: {ts}, title: {t}, authors: {a}, zettel: {z}, tags: {tg} })"
@@ -61,7 +62,7 @@ neo4jToIO = interpret $ \case
           (\c -> neo4jToIO $ createRelation newZettelId (getCID c) (getDesc c))
           (getConnections zettel)
   CreateRelation (ZID id1) (ZID id2) t -> do
-    pipe <- ask
+    pipe <- input
     B.run pipe $
       B.queryP_
         ( "MATCH (z1:Zettel) WHERE ID(z1)={id1}\n"
@@ -75,7 +76,7 @@ neo4jToIO = interpret $ \case
             ]
         )
   GetNode (ZID i) -> do
-    pipe <- ask
+    pipe <- input
     r <-
       B.run pipe $
         B.queryP
@@ -83,7 +84,7 @@ neo4jToIO = interpret $ \case
           (fromList [("id", B.I i)])
     return . toZettel . (! "z") . Prelude.head $ r
   ListNodes s -> do
-    pipe <- ask
+    pipe <- input
     r <-
       B.run pipe $
         B.queryP
@@ -91,14 +92,19 @@ neo4jToIO = interpret $ \case
           (fromList [("size", B.I s)])
     return . Prelude.map (toZettel . (! "z")) $ r
   FindNodes tags -> do
-    pipe <- ask
+    pipe <- input
     r <-
       B.run pipe $
         B.queryP
           "MATCH (z:Zettel) WHERE size([tag IN {tags} WHERE tag IN z.tags | 1]) > 0 RETURN z"
           (fromList [("tags", B.L . Prelude.map (B.T . pack) $ tags)])
     return . Prelude.map (toZettel . (! "z")) $ r
-
+  Delete (ZID zid) -> do
+    pipe <- input
+    B.run pipe $
+      B.queryP_
+        "MATCH (z:Zettel) WHERE ID(z)={zid} DELETE z"
+        (fromList [("zid", B.I zid)])
 
 toZettel :: B.Value -> Zettel
 toZettel (B.S l) =

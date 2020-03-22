@@ -7,7 +7,7 @@ where
 
 import Data.Text
 
-newtype ZettelID = ZID {getZID :: Int} deriving (Show, Eq)
+newtype ZettelID = ZID {getZID :: Int} deriving (Show, Read, Eq)
 
 data Zettel
   = Zettel
@@ -19,11 +19,11 @@ data Zettel
         getTags :: [Text],
         getConnections :: [Connection]
       }
-  deriving (Show, Eq)
+  deriving (Show, Read, Eq)
 
 data Connection
   = Connection
       { getCID :: ZettelID,
         getDesc :: Text
       }
-  deriving (Show, Eq)
+  deriving (Show, Read, Eq)
