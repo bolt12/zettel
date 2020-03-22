@@ -29,6 +29,7 @@ import System.Directory
 import System.Environment
 import Text.Editor
 import qualified Data.Text.Lazy as TL (unpack)
+import qualified Data.Text as TT (unpack)
 import Data.Text (pack)
 import Text.Pandoc hiding (trace)
 import Text.Pretty.Simple (pShow)
@@ -41,15 +42,18 @@ data Options w
   | Find
       { tags :: w ::: [String] <?> "Tags to search for"
       }
-  | Remove
-      { id :: w ::: Int <?> "Zettel id to delete"
+  | Delete
+      { did :: w ::: Int <?> "Zettel id to delete"
+      }
+  | Edit
+      { eid :: w ::: Int <?> "Zettel id to edit"
       }
   deriving (Generic)
 
 instance ParseRecord (Options Wrapped)
 deriving instance Show (Options Unwrapped)
 
-newtype ZettelError = ZettelError (Either PandocError DependenciesFoundError)
+newtype ZettelError = ZettelError (Either PandocError (Either DependenciesFoundError NodeNotFoundError))
   deriving (Show)
 
 template :: ByteString
@@ -96,7 +100,25 @@ mainProg = do
     Find t -> do
       r <- findNodes t
       trace . TL.unpack . pShow $ r
-    Remove zid -> delete (ZID zid)
+    Delete zid -> deleteNode (ZID zid)
+    Edit zid -> do
+      home <- embed $ getEnv "HOME"
+      zt <- getNode (ZID zid)
+      case zt of
+        Nothing -> throw . ZettelError . Right . Right $ NodeNotFoundError "No Zettel with given ID found"
+        (Just z) -> do
+          let filename = TT.unpack (getTimestamp z) ++ ".md"
+              filepath = home ++ "/.config/zettel/" ++ filename
+          r <- embed $ runUserEditorDWIMFile markdownTemplate filepath
+          embed $ B.writeFile filepath r
+          p <- embed . runIO $ readZettel filepath
+          case p of
+            Left e -> throw . ZettelError $ Left e
+            Right pandoc -> do
+              zettel <- embed . runIO $ createZettel (TT.unpack $ getTimestamp z) pandoc
+              case zettel of
+                Left e -> throw . ZettelError $ Left e
+                Right z -> editNode (z { getId = ZID zid })
 
 runMain :: DB.Pipe -> IO (Either ZettelError ())
 runMain pipe =
@@ -104,7 +126,7 @@ runMain pipe =
     . traceToIO
     . runInputConst pipe
     . runError @ZettelError
-    . mapError (ZettelError . Right)
+    . mapError (ZettelError . Right . Left)
     . neo4jToIO
     $ mainProg
 

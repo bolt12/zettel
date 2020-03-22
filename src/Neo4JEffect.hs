@@ -23,17 +23,23 @@ type User = Text
 
 type Password = Text
 
+type Tags = String
+
 data Neo4J m a where
   CreateNode :: Zettel -> Neo4J m ()
   CreateRelation :: ZettelID -> ZettelID -> Text -> Neo4J m ()
-  GetNode :: ZettelID -> Neo4J m Zettel
+  GetNode :: ZettelID -> Neo4J m (Maybe Zettel)
   ListNodes :: Int -> Neo4J m [Zettel]
-  FindNodes :: [String] -> Neo4J m [Zettel]
-  Delete :: ZettelID -> Neo4J m ()
+  FindNodes :: [Tags] -> Neo4J m [Zettel]
+  DeleteNode :: ZettelID -> Neo4J m ()
+  EditNode :: Zettel -> Neo4J m ()
 
 makeSem ''Neo4J
 
 newtype DependenciesFoundError = DependenciesFoundError String
+  deriving (Show)
+
+newtype NodeNotFoundError = NodeNotFoundError String
   deriving (Show)
 
 neo4jToIO :: Members '[Input B.Pipe, Error DependenciesFoundError, Embed IO] r => Sem (Neo4J ': r) a -> Sem r a
@@ -84,9 +90,11 @@ neo4jToIO = interpret $ \case
     r <-
       B.run pipe $
         B.queryP
-          "MATCH (z:Zettel) WHERE ID(z)={id}"
+          "MATCH (z:Zettel) WHERE ID(z)={id} return z"
           (fromList [("id", B.I i)])
-    return . toZettel . (! "z") . Prelude.head $ r
+    if Prelude.null r 
+       then return Nothing
+       else return . Just . toZettel . (! "z") . Prelude.head $ r
   ListNodes s -> do
     pipe <- input
     r <-
@@ -103,7 +111,7 @@ neo4jToIO = interpret $ \case
           "MATCH (z:Zettel) WHERE size([tag IN {tags} WHERE tag IN z.tags | 1]) > 0 RETURN z"
           (fromList [("tags", B.L . Prelude.map (B.T . pack) $ tags)])
     return . Prelude.map (toZettel . (! "z")) $ r
-  Delete (ZID zid) -> do
+  DeleteNode (ZID zid) -> do
     pipe <- input
     r <-
       B.run pipe $
@@ -114,13 +122,23 @@ neo4jToIO = interpret $ \case
           (fromList [("zid", B.I zid)])
     if not (Prelude.null r)
        then throw (DependenciesFoundError "There are nodes which relate to this Zettel")
-       else
+       else do
+         -- Delete connections
          B.run pipe $
            B.queryP_
              ( "MATCH (z:Zettel) WHERE ID(z)={zid}\n"
-               `append` "MATCH p=(z)-->() DELETE p, z"
+               `append` "MATCH p=(z)-->() DELETE p"
              )
              (fromList [("zid", B.I zid)])
+
+         -- Delete node
+         B.run pipe $
+           B.queryP_
+             "MATCH (z:Zettel) WHERE ID(z)={zid} DELETE z"
+             (fromList [("zid", B.I zid)])
+  EditNode z -> do
+    neo4jToIO . deleteNode $ getId z
+    neo4jToIO (createNode z)
 
 toZettel :: B.Value -> Zettel
 toZettel (B.S l) =
