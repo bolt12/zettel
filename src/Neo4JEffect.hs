@@ -16,6 +16,7 @@ import Data.Text
 import qualified Database.Bolt as B
 import Polysemy
 import Polysemy.Input
+import Polysemy.Error
 import Types
 
 type User = Text
@@ -32,7 +33,10 @@ data Neo4J m a where
 
 makeSem ''Neo4J
 
-neo4jToIO :: Members '[Input B.Pipe, Embed IO] r => Sem (Neo4J ': r) a -> Sem r a
+newtype DependenciesFoundError = DependenciesFoundError String
+  deriving (Show)
+
+neo4jToIO :: Members '[Input B.Pipe, Error DependenciesFoundError, Embed IO] r => Sem (Neo4J ': r) a -> Sem r a
 neo4jToIO = interpret $ \case
   CreateNode zettel -> do
     pipe <- input
@@ -101,10 +105,22 @@ neo4jToIO = interpret $ \case
     return . Prelude.map (toZettel . (! "z")) $ r
   Delete (ZID zid) -> do
     pipe <- input
-    B.run pipe $
-      B.queryP_
-        "MATCH (z:Zettel) WHERE ID(z)={zid} DELETE z"
-        (fromList [("zid", B.I zid)])
+    r <-
+      B.run pipe $
+        B.queryP
+          ( "MATCH (z:Zettel) WHERE ID(z)={zid}\n"
+            `append` "MATCH p=()-->(z) RETURN p"
+          )
+          (fromList [("zid", B.I zid)])
+    if not (Prelude.null r)
+       then throw (DependenciesFoundError "There are nodes which relate to this Zettel")
+       else
+         B.run pipe $
+           B.queryP_
+             ( "MATCH (z:Zettel) WHERE ID(z)={zid}\n"
+               `append` "MATCH p=(z)-->() DELETE p, z"
+             )
+             (fromList [("zid", B.I zid)])
 
 toZettel :: B.Value -> Zettel
 toZettel (B.S l) =

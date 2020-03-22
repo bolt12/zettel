@@ -49,6 +49,9 @@ data Options w
 instance ParseRecord (Options Wrapped)
 deriving instance Show (Options Unwrapped)
 
+newtype ZettelError = ZettelError (Either PandocError DependenciesFoundError)
+  deriving (Show)
+
 template :: ByteString
 template =
   "\
@@ -67,7 +70,7 @@ template =
   \\n\
   \## Content\n"
 
-mainProg :: Members '[Neo4J, Error PandocError, Trace, Embed IO] r => Sem r ()
+mainProg :: Members '[Neo4J, Error ZettelError, Trace, Embed IO] r => Sem r ()
 mainProg = do
   x <- unwrapRecord "Zettelkasten processor"
   case x of
@@ -84,23 +87,24 @@ mainProg = do
       embed $ B.writeFile zettelsFile r
       p <- embed . runIO $ readZettel zettelsFile
       case p of
-        Left e -> throw e
+        Left e -> throw . ZettelError $ Left e
         Right pandoc -> do
           zettel <- embed . runIO $ createZettel formated pandoc
           case zettel of
-            Left e -> throw e
+            Left e -> throw . ZettelError $ Left e
             Right z -> createNode z
     Find t -> do
       r <- findNodes t
       trace . TL.unpack . pShow $ r
     Remove zid -> delete (ZID zid)
 
-runMain :: DB.Pipe -> IO (Either PandocError ())
+runMain :: DB.Pipe -> IO (Either ZettelError ())
 runMain pipe =
   runM
     . traceToIO
     . runInputConst pipe
-    . runError @PandocError
+    . runError @ZettelError
+    . mapError (ZettelError . Right)
     . neo4jToIO
     $ mainProg
 
