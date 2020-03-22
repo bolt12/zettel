@@ -42,10 +42,9 @@ By default it will use `vi`.
 
 ```shell
 > zettel -h
->
 Zettelkasten processor
 
-Usage: zettel (new | list)
+Usage: zettel (new | list | find | delete | edit)
 
 Available options:
 -h,--help                Show this help text
@@ -53,12 +52,25 @@ Available options:
 Available commands:
 new
 list
+find
+delete
+edit
 ```
 
 The `new` command will open your default editor so you can write your zettelkasten. On
 save the file will be parsed and insert it on the DB.
 
 The `list` command requires a `--size=` flag and lists all your zettels.
+
+The `find` command requires a `--tags` flag and finds all zettels that have at least one
+of the specified tags in common. __NOTE:__ to search for multiple tags do `zettel find
+--tags tag1 --tags tag2`, for example.
+
+The `delete` command requires a `--did` flag and deletes the zettel with the specified id.
+
+The `edit` command requires a `--eid` flag and opens the zettel file of the specified id.
+__NOTE:__ If any zettel has a connection to the zettel to be edited than it is not
+possible to edit that zettel (Editing a zettel will not change its timestamp).
 
 Your Zettels will be stored in `HOME/.config/zettel/`.
 
