@@ -15,8 +15,8 @@ import Data.Map
 import Data.Text
 import qualified Database.Bolt as B
 import Polysemy
-import Polysemy.Input
 import Polysemy.Error
+import Polysemy.Input
 import Types
 
 type User = Text
@@ -43,102 +43,100 @@ newtype NodeNotFoundError = NodeNotFoundError String
   deriving (Show)
 
 neo4jToIO :: Members '[Input B.Pipe, Error DependenciesFoundError, Embed IO] r => Sem (Neo4J ': r) a -> Sem r a
-neo4jToIO = interpret $ \case
-  CreateNode zettel -> do
-    pipe <- input
-    B.run pipe $
-      B.queryP_
-        "CREATE (node:Zettel { timestamp: {ts}, title: {t}, authors: {a}, zettel: {z}, tags: {tg} })"
-        ( fromList
-            [ ("ts", B.T $ getTimestamp zettel),
-              ("t", B.T $ getTitle zettel),
-              ("a", B.L . Prelude.map B.T . getAuthors $ zettel),
-              ("z", B.T $ getZettel zettel),
-              ("tg", B.L . Prelude.map B.T . getTags $ zettel)
-            ]
-        )
-    if Prelude.null (getConnections zettel)
-      then return ()
-      else do
-        r <-
+neo4jToIO sem = do
+  pipe <- input @B.Pipe
+  interpret
+    ( \case
+        CreateNode zettel -> do
           B.run pipe $
-            B.queryP
-              "MATCH (z:Zettel) WHERE z.timestamp = {ts} return z"
+            B.queryP_
+              "CREATE (node:Zettel { timestamp: {ts}, title: {t}, authors: {a}, zettel: {z}, tags: {tg} })"
               ( fromList
-                  [("ts", B.T $ getTimestamp zettel)]
+                  [ ("ts", B.T $ getTimestamp zettel),
+                    ("t", B.T $ getTitle zettel),
+                    ("a", B.L . Prelude.map B.T . getAuthors $ zettel),
+                    ("z", B.T $ getZettel zettel),
+                    ("tg", B.L . Prelude.map B.T . getTags $ zettel)
+                  ]
               )
-        let newZettelId = getId . toZettel . (! "z") . Prelude.head $ r
-        mapM_
-          (\c -> neo4jToIO $ createRelation newZettelId (getCID c) (getDesc c))
-          (getConnections zettel)
-  CreateRelation (ZID id1) (ZID id2) t -> do
-    pipe <- input
-    B.run pipe $
-      B.queryP_
-        ( "MATCH (z1:Zettel) WHERE ID(z1)={id1}\n"
-            `append` "MATCH (z2:Zettel) WHERE ID(z2)={id2}\n"
-            `append` "CREATE (z1)-[:RELATES { reason: {desc} }]->(z2)"
-        )
-        ( fromList
-            [ ("id1", B.I id1),
-              ("id2", B.I id2),
-              ("desc", B.T t)
-            ]
-        )
-  GetNode (ZID i) -> do
-    pipe <- input
-    r <-
-      B.run pipe $
-        B.queryP
-          "MATCH (z:Zettel) WHERE ID(z)={id} return z"
-          (fromList [("id", B.I i)])
-    if Prelude.null r 
-       then return Nothing
-       else return . Just . toZettel . (! "z") . Prelude.head $ r
-  ListNodes s -> do
-    pipe <- input
-    r <-
-      B.run pipe $
-        B.queryP
-          "MATCH (z:Zettel) RETURN z LIMIT {size}"
-          (fromList [("size", B.I s)])
-    return . Prelude.map (toZettel . (! "z")) $ r
-  FindNodes tags -> do
-    pipe <- input
-    r <-
-      B.run pipe $
-        B.queryP
-          "MATCH (z:Zettel) WHERE size([tag IN {tags} WHERE tag IN z.tags | 1]) > 0 RETURN z"
-          (fromList [("tags", B.L . Prelude.map (B.T . pack) $ tags)])
-    return . Prelude.map (toZettel . (! "z")) $ r
-  DeleteNode (ZID zid) -> do
-    pipe <- input
-    r <-
-      B.run pipe $
-        B.queryP
-          ( "MATCH (z:Zettel) WHERE ID(z)={zid}\n"
-            `append` "MATCH p=()-->(z) RETURN p"
-          )
-          (fromList [("zid", B.I zid)])
-    if not (Prelude.null r)
-       then throw (DependenciesFoundError "There are nodes which relate to this Zettel")
-       else do
-         -- Delete connections
-         B.run pipe $
-           B.queryP_
-             ( "MATCH (z:Zettel) WHERE ID(z)={zid}\n"
-               `append` "MATCH p=(z)-->() DELETE p"
-             )
-             (fromList [("zid", B.I zid)])
-
-         -- Delete node
-         B.run pipe $
-           B.queryP_
-             "MATCH (z:Zettel) WHERE ID(z)={zid} DELETE z"
-             (fromList [("zid", B.I zid)])
-  EditNode z -> do
-    neo4jToIO . deleteNode $ getId z
-    neo4jToIO (createNode z)
+          if Prelude.null (getConnections zettel)
+            then return ()
+            else do
+              r <-
+                B.run pipe $
+                  B.queryP
+                    "MATCH (z:Zettel) WHERE z.timestamp = {ts} return z"
+                    ( fromList
+                        [("ts", B.T $ getTimestamp zettel)]
+                    )
+              let newZettelId = getId . toZettel . (! "z") . Prelude.head $ r
+              mapM_
+                (\c -> neo4jToIO $ createRelation newZettelId (getCID c) (getDesc c))
+                (getConnections zettel)
+        CreateRelation (ZID id1) (ZID id2) t ->
+          B.run pipe $
+            B.queryP_
+              ( "MATCH (z1:Zettel) WHERE ID(z1)={id1}\n"
+                  `append` "MATCH (z2:Zettel) WHERE ID(z2)={id2}\n"
+                  `append` "CREATE (z1)-[:RELATES { reason: {desc} }]->(z2)"
+              )
+              ( fromList
+                  [ ("id1", B.I id1),
+                    ("id2", B.I id2),
+                    ("desc", B.T t)
+                  ]
+              )
+        GetNode (ZID i) -> do
+          r <-
+            B.run pipe $
+              B.queryP
+                "MATCH (z:Zettel) WHERE ID(z)={id} return z"
+                (fromList [("id", B.I i)])
+          if Prelude.null r
+            then return Nothing
+            else return . Just . toZettel . (! "z") . Prelude.head $ r
+        ListNodes s -> do
+          r <-
+            B.run pipe $
+              B.queryP
+                "MATCH (z:Zettel) RETURN z LIMIT {size}"
+                (fromList [("size", B.I s)])
+          return . Prelude.map (toZettel . (! "z")) $ r
+        FindNodes tags -> do
+          r <-
+            B.run pipe $
+              B.queryP
+                "MATCH (z:Zettel) WHERE size([tag IN {tags} WHERE tag IN z.tags | 1]) > 0 RETURN z"
+                (fromList [("tags", B.L . Prelude.map (B.T . pack) $ tags)])
+          return . Prelude.map (toZettel . (! "z")) $ r
+        DeleteNode (ZID zid) -> do
+          r <-
+            B.run pipe $
+              B.queryP
+                ( "MATCH (z:Zettel) WHERE ID(z)={zid}\n"
+                    `append` "MATCH p=()-->(z) RETURN p"
+                )
+                (fromList [("zid", B.I zid)])
+          if not (Prelude.null r)
+            then throw (DependenciesFoundError "There are nodes which relate to this Zettel")
+            else do
+              -- Delete connections
+              B.run pipe $
+                B.queryP_
+                  ( "MATCH (z:Zettel) WHERE ID(z)={zid}\n"
+                      `append` "MATCH p=(z)-->() DELETE p"
+                  )
+                  (fromList [("zid", B.I zid)])
+              -- Delete node
+              B.run pipe $
+                B.queryP_
+                  "MATCH (z:Zettel) WHERE ID(z)={zid} DELETE z"
+                  (fromList [("zid", B.I zid)])
+        EditNode z -> do
+          neo4jToIO . deleteNode $ getId z
+          neo4jToIO (createNode z)
+    )
+    sem
 
 toZettel :: B.Value -> Zettel
 toZettel (B.S l) =
