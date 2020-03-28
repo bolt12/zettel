@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
@@ -12,27 +13,28 @@ module Main
   )
 where
 
+import Control.Exception (SomeException, catch)
 import qualified Data.ByteString as B
-import Data.ByteString hiding (unpack, pack, map)
+import Data.ByteString hiding (map, pack, unpack)
+import qualified Data.Text as TT (unpack)
+import Data.Text (pack)
+import qualified Data.Text.Lazy as TL (unpack)
 import qualified Data.Time as T
 import Data.Time.Format
 import qualified Database.Bolt as DB
 import Neo4JEffect
-import Types
 import Options.Generic
 import PandocParse
 import Polysemy
-import Polysemy.Error
+import Polysemy.Error hiding (catch)
 import Polysemy.Input
 import Polysemy.Trace
 import System.Directory
 import System.Environment
 import Text.Editor
-import qualified Data.Text.Lazy as TL (unpack)
-import qualified Data.Text as TT (unpack)
-import Data.Text (pack)
 import Text.Pandoc hiding (trace)
 import Text.Pretty.Simple (pShow)
+import Types
 
 data Options w
   = New
@@ -51,6 +53,7 @@ data Options w
   deriving (Generic)
 
 instance ParseRecord (Options Wrapped)
+
 deriving instance Show (Options Unwrapped)
 
 newtype ZettelError = ZettelError (Either PandocError (Either DependenciesFoundError NodeNotFoundError))
@@ -118,7 +121,7 @@ mainProg = do
               zettel <- embed . runIO $ createZettel (TT.unpack $ getTimestamp z) pandoc
               case zettel of
                 Left e -> throw . ZettelError $ Left e
-                Right z -> editNode (z { getId = ZID zid })
+                Right z -> editNode (z {getId = ZID zid})
 
 runMain :: DB.Pipe -> IO (Either ZettelError ())
 runMain pipe =
@@ -135,16 +138,23 @@ main = do
   home <- getEnv "HOME"
   b <- doesFileExist (home ++ "/.config/zettel/zettel-conf")
   [user, pass] <-
-    map pack <$>
-    if b
-      then words <$> Prelude.readFile (home ++ "/.config/zettel/zettel-conf")
-      else do
-        createDirectoryIfMissing False (home ++ "/.config/zettel")
-        Prelude.writeFile
-          (home ++ "/.config/zettel/zettel-conf")
-          "neo4j neo4j"
-        return ["neo4j", "neo4j"]
-  pipe <- DB.connect (def {DB.user = user, DB.password = pass})
+    map pack
+      <$> if b
+        then words <$> Prelude.readFile (home ++ "/.config/zettel/zettel-conf")
+        else do
+          createDirectoryIfMissing False (home ++ "/.config/zettel")
+          Prelude.writeFile
+            (home ++ "/.config/zettel/zettel-conf")
+            "neo4j neo4j"
+          return ["neo4j", "neo4j"]
+  pipe <-
+    DB.connect (def {DB.user = user, DB.password = pass})
+      `catch` ( \(_ :: SomeException) ->
+                  error
+                    ( "Failed to connect to DB.\n"
+                        ++ "Please check your credentials and make sure Neo4J is running."
+                    )
+              )
   r <- runMain pipe
   case r of
     Left e -> error (show e)
