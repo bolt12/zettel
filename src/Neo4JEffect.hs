@@ -4,6 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -11,12 +12,14 @@
 
 module Neo4JEffect where
 
+import Control.Exception (SomeException)
+import           Control.Monad
+import Data.Default
 import Data.Map
 import Data.Text
 import qualified Database.Bolt as B
 import Polysemy
 import Polysemy.Error
-import Polysemy.Input
 import Types
 
 type User = Text
@@ -42,12 +45,27 @@ newtype DependenciesFoundError = DependenciesFoundError String
 newtype NodeNotFoundError = NodeNotFoundError String
   deriving (Show)
 
-neo4jToIO :: Members '[Input B.Pipe, Error DependenciesFoundError, Embed IO] r => Sem (Neo4J ': r) a -> Sem r a
-neo4jToIO sem = do
-  pipe <- input @B.Pipe
+newtype ConnectionError = ConnectionError String
+  deriving (Show)
+
+errorMsg :: String
+errorMsg = "Failed to connect to DB.\n"
+           ++ "Please check your credentials and make sure Neo4J is running."
+
+neo4jToIO ::
+  User ->
+  Password ->
+  Members '[Error DependenciesFoundError, Error ConnectionError, Embed IO] r =>
+  Sem (Neo4J ': r) a ->
+  Sem r a
+neo4jToIO user pass =
   interpret
     ( \case
         CreateNode zettel -> do
+          pipe <-
+            fromExceptionVia @SomeException
+              (const $ ConnectionError errorMsg)
+              (B.connect (def {B.user = user, B.password = pass}))
           B.run pipe $
             B.queryP_
               "CREATE (node:Zettel { timestamp: {ts}, title: {t}, authors: {a}, zettel: {z}, tags: {tg} })"
@@ -60,7 +78,7 @@ neo4jToIO sem = do
                   ]
               )
           if Prelude.null (getConnections zettel)
-            then return ()
+            then B.close pipe
             else do
               r <-
                 B.run pipe $
@@ -69,12 +87,17 @@ neo4jToIO sem = do
                     ( fromList
                         [("ts", B.T $ getTimestamp zettel)]
                     )
+              B.close pipe
               let newZettelId = getId . toZettel . (! "z") . Prelude.head $ r
               mapM_
-                (\c -> neo4jToIO $ createRelation newZettelId (getCID c) (getDesc c))
+                (\c -> neo4jToIO user pass $ createRelation newZettelId (getCID c) (getDesc c))
                 (getConnections zettel)
-        CreateRelation (ZID id1) (ZID id2) t ->
-          B.run pipe $
+        CreateRelation (ZID id1) (ZID id2) t -> do
+          pipe <-
+            fromExceptionVia @SomeException
+              (const $ ConnectionError errorMsg)
+              (B.connect (def {B.user = user, B.password = pass}))
+          x <- B.run pipe $
             B.queryP_
               ( "MATCH (z1:Zettel) WHERE ID(z1)={id1}\n"
                   `append` "MATCH (z2:Zettel) WHERE ID(z2)={id2}\n"
@@ -86,30 +109,51 @@ neo4jToIO sem = do
                     ("desc", B.T t)
                   ]
               )
+          B.close pipe
+          return x
         GetNode (ZID i) -> do
+          pipe <-
+            fromExceptionVia @SomeException
+              (const $ ConnectionError errorMsg)
+              (B.connect (def {B.user = user, B.password = pass}))
           r <-
             B.run pipe $
               B.queryP
                 "MATCH (z:Zettel) WHERE ID(z)={id} return z"
                 (fromList [("id", B.I i)])
+          B.close pipe
           if Prelude.null r
             then return Nothing
             else return . Just . toZettel . (! "z") . Prelude.head $ r
         ListNodes s -> do
+          pipe <-
+            fromExceptionVia @SomeException
+              (const $ ConnectionError errorMsg)
+              (B.connect (def {B.user = user, B.password = pass}))
           r <-
             B.run pipe $
               B.queryP
                 "MATCH (z:Zettel) RETURN z LIMIT {size}"
                 (fromList [("size", B.I s)])
+          B.close pipe
           return . Prelude.map (toZettel . (! "z")) $ r
         FindNodes tags -> do
+          pipe <-
+            fromExceptionVia @SomeException
+              (const $ ConnectionError errorMsg)
+              (B.connect (def {B.user = user, B.password = pass}))
           r <-
             B.run pipe $
               B.queryP
                 "MATCH (z:Zettel) WHERE size([tag IN {tags} WHERE tag IN z.tags | 1]) > 0 RETURN z"
                 (fromList [("tags", B.L . Prelude.map (B.T . pack) $ tags)])
+          B.close pipe
           return . Prelude.map (toZettel . (! "z")) $ r
         DeleteNode (ZID zid) -> do
+          pipe <-
+            fromExceptionVia @SomeException
+              (const $ ConnectionError errorMsg)
+              (B.connect (def {B.user = user, B.password = pass}))
           r <-
             B.run pipe $
               B.queryP
@@ -118,7 +162,7 @@ neo4jToIO sem = do
                 )
                 (fromList [("zid", B.I zid)])
           if not (Prelude.null r)
-            then throw (DependenciesFoundError "There are nodes which relate to this Zettel")
+            then B.close pipe >> throw (DependenciesFoundError "There are nodes which relate to this Zettel")
             else do
               -- Delete connections
               B.run pipe $
@@ -132,11 +176,11 @@ neo4jToIO sem = do
                 B.queryP_
                   "MATCH (z:Zettel) WHERE ID(z)={zid} DELETE z"
                   (fromList [("zid", B.I zid)])
+              B.close pipe
         EditNode z -> do
-          neo4jToIO . deleteNode $ getId z
-          neo4jToIO (createNode z)
+          neo4jToIO user pass . deleteNode $ getId z
+          neo4jToIO user pass (createNode z)
     )
-    sem
 
 toZettel :: B.Value -> Zettel
 toZettel (B.S l) =

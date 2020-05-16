@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -13,7 +14,7 @@ module Main
   )
 where
 
-import Control.Exception (SomeException, catch)
+import Control.Exception (Exception, IOException, SomeException, catch)
 import qualified Data.ByteString as B
 import Data.ByteString hiding (map, pack, unpack)
 import qualified Data.Text as TT (unpack)
@@ -27,7 +28,6 @@ import Options.Generic
 import PandocParse
 import Polysemy
 import Polysemy.Error hiding (catch)
-import Polysemy.Input
 import Polysemy.Trace
 import System.Directory
 import System.Environment
@@ -56,8 +56,12 @@ instance ParseRecord (Options Wrapped)
 
 deriving instance Show (Options Unwrapped)
 
-newtype ZettelError = ZettelError (Either PandocError (Either DependenciesFoundError NodeNotFoundError))
-  deriving (Show)
+data ZettelError
+  = P PandocError
+  | D DependenciesFoundError
+  | N NodeNotFoundError
+  | C ConnectionError
+  deriving (Show, Exception)
 
 template :: ByteString
 template =
@@ -94,11 +98,11 @@ mainProg = do
       embed $ B.writeFile zettelsFile r
       p <- embed . runIO $ readZettel zettelsFile
       case p of
-        Left e -> throw . ZettelError $ Left e
+        Left e -> throw $ P e
         Right pandoc -> do
           zettel <- embed . runIO $ createZettel formated pandoc
           case zettel of
-            Left e -> throw . ZettelError $ Left e
+            Left e -> throw $ P e
             Right z -> createNode z
     Find t -> do
       r <- findNodes t
@@ -108,7 +112,7 @@ mainProg = do
       home <- embed $ getEnv "HOME"
       zt <- getNode (ZID zid)
       case zt of
-        Nothing -> throw . ZettelError . Right . Right $ NodeNotFoundError "No Zettel with given ID found"
+        Nothing -> throw . N $ NodeNotFoundError "No Zettel with given ID found"
         (Just z) -> do
           let filename = TT.unpack (getTimestamp z) ++ ".md"
               filepath = home ++ "/.config/zettel/" ++ filename
@@ -116,21 +120,21 @@ mainProg = do
           embed $ B.writeFile filepath r
           p <- embed . runIO $ readZettel filepath
           case p of
-            Left e -> throw . ZettelError $ Left e
+            Left e -> throw $ P e
             Right pandoc -> do
               zettel <- embed . runIO $ createZettel (TT.unpack $ getTimestamp z) pandoc
               case zettel of
-                Left e -> throw . ZettelError $ Left e
+                Left e -> throw $ P e
                 Right z -> editNode (z {getId = ZID zid})
 
-runMain :: DB.Pipe -> IO (Either ZettelError ())
-runMain pipe =
+runMain :: User -> Password -> IO (Either ZettelError ())
+runMain user pass =
   runM
-    . traceToIO
-    . runInputConst pipe
     . runError @ZettelError
-    . mapError (ZettelError . Right . Left)
-    . neo4jToIO
+    . mapError C
+    . mapError D
+    . neo4jToIO user pass
+    . traceToIO
     $ mainProg
 
 main :: IO ()
@@ -147,15 +151,7 @@ main = do
             (home ++ "/.config/zettel/zettel-conf")
             "neo4j neo4j"
           return ["neo4j", "neo4j"]
-  pipe <-
-    DB.connect (def {DB.user = user, DB.password = pass})
-      `catch` ( \(_ :: SomeException) ->
-                  error
-                    ( "Failed to connect to DB.\n"
-                        ++ "Please check your credentials and make sure Neo4J is running."
-                    )
-              )
-  r <- runMain pipe
+  r <- runMain user pass
   case r of
     Left e -> error (show e)
     Right x -> return x
