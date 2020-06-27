@@ -21,11 +21,9 @@ let
         }
         {});
       "polysemy" =
-        pkgs.haskell.lib.dontCheck (hself.callHackageDirect {
-          pkg = sources.polysemy.name;
-          ver = sources.polysemy.version;
-          sha256 = sources.polysemy.sha256;
-        }
+        pkgs.haskell.lib.dontCheck (hself.callCabal2nix
+          "polysemy"
+          sources.polysemy
         {});
     };
   };

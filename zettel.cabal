@@ -1,4 +1,4 @@
-cabal-version:       3.0
+cabal-version:       2.4
 name:                zettel
 version:             1.0.0.0
 synopsis:            Zettelkasten file processor
