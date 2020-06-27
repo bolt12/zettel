@@ -15,16 +15,16 @@ let
           {};
       "polysemy-plugin" =
         pkgs.haskell.lib.dontCheck (hself.callHackageDirect {
-          pkg = "polysemy-plugin";
-          ver = "0.2.5.0";
-          sha256 = "0jnps8kwxd0hakis5ph77r45mv1qnkxdf5506shcjb1zmxqmxpjv";
+          pkg = sources.polysemy-plugin.name;
+          ver = sources.polysemy-plugin.version;
+          sha256 = sources.polysemy-plugin.sha256;
         }
         {});
       "polysemy" =
         pkgs.haskell.lib.dontCheck (hself.callHackageDirect {
-          pkg = "polysemy";
-          ver = "1.3.0.0";
-          sha256 = "1p75i56qpl0v79vrlzw04117czzgwhn1l0vadvka8m7drmcvwsf6";
+          pkg = sources.polysemy.name;
+          ver = sources.polysemy.version;
+          sha256 = sources.polysemy.sha256;
         }
         {});
     };
