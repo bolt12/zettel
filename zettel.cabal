@@ -32,7 +32,7 @@ common common-options
                        vector,
                        aeson,
                        pretty-simple
-  
+
   ghc-options:         -Wall
                        -Wcompat
                        -Widentities
@@ -59,7 +59,7 @@ executable zettel
   other-modules:       Neo4JEffect
                        PandocParse
                        Types
-  
+
   ghc-options:         -threaded
                        -rtsopts
                        -with-rtsopts=-N
