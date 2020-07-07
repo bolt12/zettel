@@ -25,6 +25,14 @@ let
           "polysemy"
           sources.polysemy
         {});
+
+      mkDerivation = args: hsuper.mkDerivation (args // {
+        doCheck = false;
+        doHaddock = false;
+        enableLibraryProfiling = false;
+        enableExecutableProfiling = false;
+        jailbreak = true;
+      });
     };
   };
 
