@@ -1,5 +1,6 @@
 # zettel
 
+[![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
 [![GitHub CI](https://github.com/bolt12/zettel/workflows/CI/badge.svg)](https://github.com/bolt12/zettel/actions)
 [![Build status](https://img.shields.io/travis/bolt12/zettel.svg?logo=travis)](https://travis-ci.org/bolt12/zettel)
 [![Hackage](https://img.shields.io/hackage/v/zettel.svg?logo=haskell)](https://hackage.haskell.org/package/zettel)

@@ -1,192 +1,65 @@
-cabal-version: 2.4
-name: zettel
-version: 0.0.0.0
-license: MIT
-license-file: LICENSE
-copyright: 2020 Armando Santos
-maintainer: Armando Santos <armandoifsantos@gmail.com>
-author: Armando Santos
-tested-with: ghc ==8.6.5 ghc ==8.8.2
-homepage: https://github.com/bolt12/zettel
-bug-reports: https://github.com/bolt12/zettel/issues
-synopsis: Zettelkasten file processor
-description:
-    Zettelkasten file processor
-category: Application
-build-type: Simple
-extra-doc-files: README.md
-                 CHANGELOG.md
+cabal-version:       3.0
+name:                zettel
+version:             1.0.0.0
+synopsis:            Zettelkasten file processor
+description:         Zettelkasten file processor
+license:             MIT
+license-file:        LICENSE
+author:              Armando Santos
+maintainer:          Armando Santos <armandoifsantos@gmail.com>
+copyright:           2020 Armando Santos
+build-type:          Simple
+extra-doc-files:     README.md
+                     CHANGELOG.md
+tested-with:         GHC == 8.6.5 GHC == 8.8.2
 
-source-repository head
-    type: git
-    location: https://github.com/bolt12/zettel.git
+common common-options
+  build-depends:       base >=4.12.0,
+                       polysemy,
+                       polysemy-plugin,
+                       hasbolt,
+                       pandoc,
+                       optparse-generic,
+                       editor-open,
+                       bytestring,
+                       time,
+                       directory,
+                       text,
+                       data-default,
+                       containers,
+                       unordered-containers,
+                       scientific,
+                       vector,
+                       aeson,
+                       pretty-simple
 
-library
-    exposed-modules:
-        Neo4JEffect
-        PandocParse
-        Types
-    hs-source-dirs: src
-    default-language: Haskell2010
-    ghc-options: -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
-                 -Wincomplete-record-updates
-    build-depends:
-        base >=4.12.0.0 && <4.14,
-        pandoc -any,
-        polysemy -any,
-        hasbolt -any,
-        text -any,
-        data-default -any,
-        containers -any,
-        unordered-containers -any,
-        scientific -any,
-        vector -any,
-        aeson -any,
-        pretty-simple -any
-    
-    if impl(ghc >=8.0)
-        ghc-options: -Wredundant-constraints
-        build-depends:
-            pandoc -any,
-            polysemy -any,
-            hasbolt -any,
-            text -any,
-            data-default -any,
-            containers -any,
-            unordered-containers -any,
-            scientific -any,
-            vector -any,
-            aeson -any,
-            pretty-simple -any,
-            pretty-simple -any
-    
-    if impl(ghc >=8.2)
-        ghc-options: -fhide-source-paths
-        build-depends:
-            pandoc -any,
-            polysemy -any,
-            hasbolt -any,
-            text -any,
-            data-default -any,
-            containers -any,
-            unordered-containers -any,
-            scientific -any,
-            vector -any,
-            aeson -any,
-            pretty-simple -any
-    
-    if impl(ghc >=8.4)
-        ghc-options: -Wmissing-export-lists -Wpartial-fields
-        build-depends:
-            pandoc -any,
-            polysemy -any,
-            hasbolt -any,
-            text -any,
-            data-default -any,
-            containers -any,
-            unordered-containers -any,
-            scientific -any,
-            vector -any,
-            aeson -any,
-            pretty-simple -any
-    
-    if impl(ghc >=8.8)
-        ghc-options: -Wmissing-deriving-strategies
-        build-depends:
-            pandoc -any,
-            polysemy -any,
-            hasbolt -any,
-            text -any,
-            data-default -any,
-            containers -any,
-            unordered-containers -any,
-            scientific -any,
-            vector -any,
-            aeson -any,
-            pretty-simple -any
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-uni-patterns
+                       -Wincomplete-record-updates
+                       -fplugin=Polysemy.Plugin
+  if impl(ghc >= 8.0)
+    ghc-options:       -Wredundant-constraints
+  if impl(ghc >= 8.2)
+    ghc-options:       -fhide-source-paths
+  if impl(ghc >= 8.4)
+    ghc-options:       -Wmissing-export-lists
+                       -Wpartial-fields
+  if impl(ghc >= 8.8)
+    ghc-options:       -Wmissing-deriving-strategies
+
+  default-language:    Haskell2010
 
 executable zettel
-    main-is: Main.hs
-    hs-source-dirs: app
-    default-language: Haskell2010
-    ghc-options: -Wall -Wcompat -Widentities -Wincomplete-uni-patterns
-                 -Wincomplete-record-updates -fplugin=Polysemy.Plugin
-    build-depends:
-        base >=4.12.0.0 && <4.14,
-        zettel -any,
-        polysemy -any,
-        polysemy-plugin -any,
-        hasbolt -any,
-        pandoc -any,
-        optparse-generic -any,
-        editor-open -any,
-        bytestring -any,
-        time -any,
-        directory -any,
-        text -any,
-        pretty-simple -any
-    
-    if impl(ghc >=8.0)
-        ghc-options: -Wredundant-constraints -fplugin=Polysemy.Plugin
-        build-depends:
-            zettel -any,
-            polysemy -any,
-            polysemy-plugin -any,
-            hasbolt -any,
-            pandoc -any,
-            optparse-generic -any,
-            editor-open -any,
-            bytestring -any,
-            time -any,
-            directory -any,
-            text -any,
-            pretty-simple -any
-    
-    if impl(ghc >=8.2)
-        ghc-options: -fhide-source-paths -fplugin=Polysemy.Plugin
-        build-depends:
-            zettel -any,
-            polysemy -any,
-            polysemy-plugin -any,
-            hasbolt -any,
-            pandoc -any,
-            optparse-generic -any,
-            editor-open -any,
-            bytestring -any,
-            time -any,
-            directory -any,
-            text -any,
-            pretty-simple -any
-    
-    if impl(ghc >=8.4)
-        ghc-options: -Wmissing-export-lists -Wpartial-fields 
-                     -fplugin=Polysemy.Plugin
-        build-depends:
-            zettel -any,
-            polysemy -any,
-            polysemy-plugin -any,
-            hasbolt -any,
-            pandoc -any,
-            optparse-generic -any,
-            editor-open -any,
-            bytestring -any,
-            time -any,
-            directory -any,
-            text -any,
-            pretty-simple -any
-    
-    if impl(ghc >=8.8)
-        ghc-options: -Wmissing-deriving-strategies -fplugin=Polysemy.Plugin
-        build-depends:
-            zettel -any,
-            polysemy -any,
-            polysemy-plugin -any,
-            hasbolt -any,
-            pandoc -any,
-            optparse-generic -any,
-            editor-open -any,
-            bytestring -any,
-            time -any,
-            directory -any,
-            text -any,
-            pretty-simple -any
+  import:              common-options
+  hs-source-dirs:      app,
+                       src
+  main-is:             Main.hs
+  other-modules:       Neo4JEffect
+                       PandocParse
+                       Types
+
+  ghc-options:         -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
