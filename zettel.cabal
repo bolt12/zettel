@@ -1,4 +1,4 @@
-cabal-version:       2.4
+cabal-version:       3.0
 name:                zettel
 version:             1.0.0.0
 synopsis:            Zettelkasten file processor
@@ -14,7 +14,7 @@ extra-doc-files:     README.md
 tested-with:         GHC == 8.6.5 GHC == 8.8.2
 
 common common-options
-  build-depends:       base ^>=4.13.0,
+  build-depends:       base ^>=4.12.0,
                        polysemy,
                        polysemy-plugin,
                        hasbolt,
