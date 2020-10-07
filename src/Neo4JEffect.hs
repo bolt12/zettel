@@ -14,9 +14,10 @@ module Neo4JEffect where
 
 import Control.Exception (SomeException)
 import           Control.Monad
+import Data.Char (toLower)
 import Data.Default
-import Data.Map
-import Data.Text
+import Data.Map hiding (map)
+import Data.Text (Text, pack, append)
 import qualified Database.Bolt as B
 import Polysemy
 import Polysemy.Error
@@ -145,8 +146,8 @@ neo4jToIO user pass =
           r <-
             B.run pipe $
               B.queryP
-                "MATCH (z:Zettel) WHERE size([tag IN {tags} WHERE tag IN z.tags | 1]) > 0 RETURN z"
-                (fromList [("tags", B.L . Prelude.map (B.T . pack) $ tags)])
+                "MATCH (z:Zettel) WHERE size([tag IN {tags} WHERE tag IN [x IN z.tags | toLower(x)] | 1]) > 0 RETURN z"
+                (fromList [("tags", B.L . Prelude.map (B.T . pack . map toLower) $ tags)])
           B.close pipe
           return . Prelude.map (toZettel . (! "z")) $ r
         DeleteNode (ZID zid) -> do

@@ -2,3 +2,8 @@ resolver: lts-14.3
 extra-deps:
   - polysemy-1.3.0.0
   - polysemy-plugin-0.2.5.0
+packages:
+  - .
+nix:
+  enable: true
+  shell-file: stack.nix

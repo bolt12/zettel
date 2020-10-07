@@ -8,11 +8,10 @@ let
 
   myHaskellPackages = pkgs.haskell.packages.${compiler}.override {
     overrides = hself: hsuper: {
-      "zettel" =
-        hself.callCabal2nix
-          "zettel"
-          (gitignore ./.)
-          {};
+      "zettel" = hself.callCabal2nix
+            "zettel"
+            (gitignore ./.)
+            {};
       "polysemy-plugin" =
         pkgs.haskell.lib.dontCheck (hself.callHackageDirect {
           pkg = sources.polysemy-plugin.name;
@@ -44,12 +43,29 @@ let
       myHaskellPackages.cabal-install
       pkgs.neo4j
       (import sources.niv {}).niv
+      pkgs.lorri
       pkgs.nixpkgs-fmt
+      pkgs.zlib
+      pkgs.gmp
+      pkgs.glibc
     ];
     withHoogle = true;
   };
 
   exe = pkgs.haskell.lib.justStaticExecutables (myHaskellPackages."zettel");
+
+  stack = pkgs.haskell.lib.buildStackProject {
+    name = "zettel";
+    buildInputs = with pkgs.haskellPackages; [
+      myHaskellPackages.cabal-install
+      pkgs.neo4j
+      (import sources.niv {}).niv
+      pkgs.lorri
+      pkgs.nixpkgs-fmt
+      pkgs.zlib
+      pkgs.gmp
+    ];
+  };
 
   docker = pkgs.dockerTools.buildImage {
     name = "zettel";
@@ -59,6 +75,7 @@ in
 {
   inherit shell;
   inherit exe;
+  inherit stack;
   inherit docker;
   inherit myHaskellPackages;
   "zettel" = myHaskellPackages."zettel";
